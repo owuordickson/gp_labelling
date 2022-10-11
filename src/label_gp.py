@@ -229,15 +229,15 @@ class LabelGP:
         return min_supp
 
 
-l_gp = LabelGP('../data/DATASET.csv', min_supp=0.4)
+# l_gp = LabelGP('../data/DATASET.csv', min_supp=0.4)
 # l_gp = LabelGP('../data/c2k_02k.csv', min_supp=0.5)
-# l_gp = LabelGP('../data/breast_cancer.csv', min_supp=0.2)
+l_gp = LabelGP('../data/breast_cancer.csv', min_supp=0.2)
 res_df, gps = l_gp.fit_discover(return_depth=True)
 
-print(l_gp.d_gp)
+print(l_gp.d_gp.head())
 print("\n")
 print(res_df)
 
-print(sgp.analyze_gps('../data/DATASET.csv', 0.4, gps, approach='dfs'))
+# print(sgp.analyze_gps('../data/DATASET.csv', 0.4, gps, approach='dfs'))
 # print(sgp.analyze_gps('../data/c2k_02k.csv', 0.5, gps, approach='dfs'))
-# print(sgp.analyze_gps('../data/breast_cancer.csv', 0.2, gps, approach='dfs'))
+print(sgp.analyze_gps('../data/breast_cancer.csv', 0.2, gps, approach='dfs'))
