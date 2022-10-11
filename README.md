@@ -1,2 +1,2 @@
-# gp_labelling
+# GP Labelling
 The task of labelling gradual patterns
