@@ -2,6 +2,7 @@ Credits:
 --------
 1. Thomas Runkler <thomas.runkler@siemens.com>
 2. Anne Laurent <laurent@lirmm.fr>
+3. Deperias Kerre <dkerre@strathmore.edu>
 
 Development Lead:
 -----------------
