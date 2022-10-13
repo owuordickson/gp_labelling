@@ -63,17 +63,29 @@ if __name__ == "__main__":
 
     if algChoice == 'lblgp':
         # LBL-GP
-        start = time.time()
-        res_text, gps = clu_grad.execute(filePath, minSup, numCores)
-        end = time.time()
-        mem_usage = memory_usage((clu_grad.execute, (filePath, minSup, numCores)), interval=10)
-        res_compare = compare_gps(filePath, minSup, gps)
 
-        wr_text = ("Run-time: " + str(end - start) + " seconds\n")
+        start = time.time()
+        lgp = label_gp.LabelGP(filePath, min_supp=0.4)
+        lgp.fit()
+        end = time.time()
+        wr_text = "Labels successfully generated\n"
+        wr_text += ("Labels Run-time: " + str(end - start) + " seconds\n")
+        wr_text += "\n\n"
+
+        # --------------------------------------------------------
+
+        start = time.time()
+        res_text, est_gps = label_gp.execute(filePath, lgp, numCores)
+        end = time.time()
+        mem_usage = memory_usage((label_gp.execute, (filePath, lgp, numCores)), interval=10)
+        res_compare = so4gp.analyze_gps(filePath, minSup, est_gps, approach='dfs')
+
+        wr_text += ("Mining Run-time: " + str(end - start) + " seconds\n")
         wr_text += ("Memory Usage (MiB): " + str(mem_usage) + " \n")
         wr_text += str(res_text)
+        wr_text += "\n\n Analysis of estimated GPs\n"
         wr_text += str(res_compare)
-        f_name = str('res_clu' + str(end).replace('.', '', 1) + '.txt')
+        f_name = str('res_lbl' + str(end).replace('.', '', 1) + '.txt')
         so4gp.write_file(wr_text, f_name, wr=True)
         print(wr_text)
     elif algChoice == 'acograd':

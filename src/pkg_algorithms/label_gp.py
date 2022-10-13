@@ -1,10 +1,35 @@
 """
-LCM: Linear time Closed item set Miner
-as described in `http://lig-membres.imag.fr/termier/HLCM/hlcm.pdf`
-URL: https://github.com/scikit-mine/scikit-mine/tree/master/skmine
-Author: Rémi Adon <remi.adon@gmail.com>
-License: BSD 3 clause
-Modified by: Dickson Owuor <owuordickson@ieee.org>
+
+@author: Dickson Owuor
+@credits: Thomas Runkler and Anne Laurent
+@license: MIT
+@version: 0.1.0
+@email: owuordickson@gmail.com
+@created: 12 October 2022
+@modified: 13 October 2022
+
+Gradual Pattern Labelling
+-------------------------
+
+A gradual pattern (GP) is a set of gradual items (GI) and its quality is measured by its computed support value. A GI is
+a pair (i,v) where i is a column and v is a variation symbol: increasing/decreasing. Each column of a data set yields 2
+GIs; for example, column age yields GI age+ or age-. For example given a data set with 3 columns (age, salary, cars) and
+10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have
+the values of column age 'increasing' and column 'salary' decreasing.
+
+The nature of data sets used in gradual pattern mining do not provide target labels/classes among their features so that
+intelligent classification algorithms may be applied on them. Therefore, most of the existing gradual pattern mining
+techniques rely on optimized algorithms for the purpose of mining gradual patterns. In order to allow the possibility of
+employing machine learning algorithms to the task of classifying gradual patterns, the need arises for labelling
+features of data sets. First, we propose an approach for generating gradual pattern labels from existing features of a
+data set. Second, we introduce a technique for extracting estimated gradual patterns from the generated labels.
+
+In this study, we propose an approach that produces GP labels for data set features. In order to test the effectiveness
+of our approach, we further propose and demonstrate how these labels may be used to extract estimated GPs with an
+acceptable accuracy. The approach for extracting GPs is adopted from LCM: Linear time Closed item set Miner as
+described in `http://lig-membres.imag.fr/termier/HLCM/hlcm.pdf`.
+Here is the GitHub URL: https://github.com/scikit-mine/scikit-mine/tree/master/skmine
+
 """
 
 
@@ -23,7 +48,7 @@ class LabelGP:
         self.min_supp = LabelGP.check_min_supp(min_supp)  # provided by user
         self.max_depth = int(max_depth)
         self.gi_rids = None
-        self.d_gp = sgp.CluDataGP(file, all=True)
+        self.d_gp = sgp.CluDataGP(file, min_supp, all=True)
         self.min_len = int(self.d_gp.row_count * self.min_supp)
         self.gp_labels = None
 
@@ -48,7 +73,8 @@ class LabelGP:
 
     def fit_discover(self, *, return_tids=False, return_depth=False):
         # fit
-        self.fit()
+        if self.gp_labels is None:
+            self.fit()
 
         # reverse order of support
         supp_sorted_items = sorted(
@@ -77,7 +103,7 @@ class LabelGP:
         # 1. Generate labels
         # data_gp = self.data_gp
         labels = []
-        features = np.array(self.d_gp.data, dtype=np.float64)
+        features = self.d_gp.data  # np.array(self.d_gp.data, dtype=np.float64)
         win_mat = self.d_gp.win_mat
         # win_mat[win_mat == 0] = self.min_len
 
@@ -86,7 +112,7 @@ class LabelGP:
         weight_vec = weight_vec_pos / np.add(weight_vec_neg, weight_vec_pos)
 
         # print(win_mat)
-        print(weight_vec)
+        # print(weight_vec)
 
         for i in range(win_mat.shape[1]):  # all columns
             temp_label = ''
@@ -120,8 +146,8 @@ class LabelGP:
         new_data = np.concatenate([features, col_labels], axis=1)
 
         # 2c. create data-frame
-        self.d_gp = pd.DataFrame(new_data, columns=column_names)
-        self.gp_labels = self.d_gp['GP Label']
+        self.d_gp.data = pd.DataFrame(new_data, columns=column_names)
+        self.gp_labels = self.d_gp.data['GP Label']
 
     def _explore_root(self, item, tids):
         it = self._inner((frozenset(), tids), item)
@@ -147,7 +173,7 @@ class LabelGP:
             p_prime = (
                 p | set(cp) | {max_k}
             )  # max_k has been consumed when calling next()
-            # sorted items in ouput for better reproducibility
+            # sorted items in output for better reproducibility
             raw_gp = np.array(list(p_prime))
             # print(str(len(raw_gp)) + ': ' + str(tids))
             if raw_gp.size <= 1:
@@ -229,15 +255,46 @@ class LabelGP:
         return min_supp
 
 
-# l_gp = LabelGP('../data/DATASET.csv', min_supp=0.4)
-l_gp = LabelGP('../data/c2k_02k.csv', min_supp=0.5)
+def execute(f_path, l_gp, cores):
+    try:
+        res_df, estimated_gps = l_gp.fit_discover(return_depth=True)
+
+        if cores > 1:
+            num_cores = cores
+        else:
+            num_cores = sgp.get_num_cores()
+
+        wr_line = "Algorithm: LBL-GP \n"
+        wr_line += "No. of (dataset) attributes: " + str(l_gp.d_gp.col_count) + '\n'
+        wr_line += "No. of (dataset) tuples: " + str(l_gp.d_gp.row_count) + '\n'
+        wr_line += "Minimum support: " + str(l_gp.d_gp.thd_supp) + '\n'
+        wr_line += "Number of cores: " + str(num_cores) + '\n'
+        wr_line += "Number of patterns: " + str(len(estimated_gps)) + '\n\n'
+
+        for txt in l_gp.d_gp.titles:
+            wr_line += (str(txt[0]) + '. ' + str(txt[1].decode()) + '\n')
+
+        wr_line += str("\nFile: " + f_path + '\n')
+        wr_line += str("\nPattern : Support" + '\n')
+
+        for gp in estimated_gps:
+            wr_line += (str(gp.to_string()) + ' : ' + str(gp.support) + '\n')
+
+        return wr_line, estimated_gps
+    except ArithmeticError as error:
+        wr_line = "Failed: " + str(error)
+        print(error)
+        return wr_line
+
+
+# l_gp = LabelGP('../../data/c2k_02k.csv', min_supp=0.5)
 # l_gp = LabelGP('../data/breast_cancer.csv', min_supp=0.2)
-res_df, gps = l_gp.fit_discover(return_depth=True)
+# res_df, est_gps = l_gp.fit_discover(return_depth=True)
 
-print(l_gp.d_gp.head())
-print("\n")
-print(res_df)
+# print(l_gp.d_gp)
+# print("\n")
+# print(res_df)
 
-# print(sgp.analyze_gps('../data/DATASET.csv', 0.4, gps, approach='dfs'))
-print(sgp.analyze_gps('../data/c2k_02k.csv', 0.5, gps, approach='dfs'))
-# print(sgp.analyze_gps('../data/breast_cancer.csv', 0.2, gps, approach='dfs'))
+# print(sgp.analyze_gps('../data/DATASET.csv', 0.4, est_gps, approach='dfs'))
+# print(sgp.analyze_gps('../../data/c2k_02k.csv', 0.5, est_gps, approach='dfs'))
+# print(sgp.analyze_gps('../data/breast_cancer.csv', 0.2, est_gps, approach='dfs'))
