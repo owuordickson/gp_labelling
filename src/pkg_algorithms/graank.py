@@ -3,8 +3,8 @@ import so4gp as sgp
 
 def execute(f_path, min_supp, cores, eq=False):
     try:
-        d_set = sgp.DataGP(f_path, min_supp)
-        out_json, list_gp = sgp.graank(f_path, min_supp, eq, return_gps=True)
+        out_json, d_set = sgp.graank(f_path, min_supp, eq, return_obj=True)
+        lst_gp = d_set.gradual_patterns
 
         if cores > 1:
             num_cores = cores
@@ -16,7 +16,7 @@ def execute(f_path, min_supp, cores, eq=False):
         wr_line += "No. of (dataset) tuples: " + str(d_set.row_count) + '\n'
         wr_line += "Minimum support: " + str(min_supp) + '\n'
         wr_line += "Number of cores: " + str(num_cores) + '\n'
-        wr_line += "Number of patterns: " + str(len(list_gp)) + '\n\n'
+        wr_line += "Number of patterns: " + str(len(lst_gp)) + '\n\n'
 
         for txt in d_set.titles:
             wr_line += (str(txt[0]) + '. ' + str(txt[1].decode()) + '\n')
@@ -24,7 +24,7 @@ def execute(f_path, min_supp, cores, eq=False):
         wr_line += str("\nFile: " + f_path + '\n')
         wr_line += str("\nPattern : Support" + '\n')
 
-        for gp in list_gp:
+        for gp in lst_gp:
             wr_line += (str(gp.to_string()) + ' : ' + str(gp.support) + '\n')
 
         return wr_line

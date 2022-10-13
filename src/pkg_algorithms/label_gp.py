@@ -48,7 +48,7 @@ class LabelGP:
         self.min_supp = LabelGP.check_min_supp(min_supp)  # provided by user
         self.max_depth = int(max_depth)
         self.gi_rids = None
-        self.d_gp = sgp.CluDataGP(file, min_supp, all=True)
+        self.d_gp = sgp.CluDataGP(file, min_supp, no_prob=True)
         self.min_len = int(self.d_gp.row_count * self.min_supp)
         self.gp_labels = None
 
@@ -211,9 +211,19 @@ class LabelGP:
             if len(res_set) > 0:
                 for temp in res_set:
                     raw_gps[i][2] = set(obj[2]).union(set(temp))
-                raw_gps[i][1] = len(raw_gps[i][2]) / total_len
+                pat_len = len(raw_gps[i][2])+1  # remember first node has 2 tids
+                raw_gps[i][1] = pat_len / total_len  # dfs approach
+                # bfs approach
+                # pat_ij = (pat_len*0.5) * (pat_len - 1)
+                # total_ij = (total_len*0.5) * (total_len - 1)
+                # raw_gps[i][1] = pat_ij / total_ij
             else:
-                raw_gps[i][1] = int(obj[1]) / total_len
+                pat_len = int(obj[1])+1  # remember first node has 2 tids
+                raw_gps[i][1] = pat_len / total_len  # dfs approach
+                # bfs approach
+                # pat_ij = (pat_len * 0.5) * (pat_len - 1)
+                # total_ij = (total_len * 0.5) * (total_len - 1)
+                # raw_gps[i][1] = pat_ij / total_ij
 
             gp = sgp.ExtGP()
             for g in obj[0]:

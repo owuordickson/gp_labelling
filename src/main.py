@@ -65,7 +65,7 @@ if __name__ == "__main__":
         # LBL-GP
 
         start = time.time()
-        lgp = label_gp.LabelGP(filePath, min_supp=0.4)
+        lgp = label_gp.LabelGP(filePath, min_supp=minSup)
         lgp.fit()
         end = time.time()
         wr_text = "Labels successfully generated\n"
@@ -88,7 +88,7 @@ if __name__ == "__main__":
         f_name = str('res_lbl' + str(end).replace('.', '', 1) + '.txt')
         so4gp.write_file(wr_text, f_name, wr=False)
         print(wr_text)
-    elif algChoice == 'acograd':
+    elif algChoice == 'acogra':
         # ACO-GRAANK
         start = time.time()
         res_text = aco_grad.execute(filePath, minSup, numCores, cfg.EVAPORATION_FACTOR, cfg.MAX_ITERATIONS)
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         wr_text += ("Memory Usage (MiB): " + str(mem_usage) + " \n")
         wr_text += str(res_text)
         f_name = str('res_aco' + str(end).replace('.', '', 1) + '.txt')
-        so4gp.write_file(wr_text, f_name, wr=True)
+        so4gp.write_file(wr_text, f_name, wr=False)
         print(wr_text)
     elif algChoice == 'graank':
         # GRAANK
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         wr_text += ("Memory Usage (MiB): " + str(mem_usage) + " \n")
         wr_text += str(res_text)
         f_name = str('res_graank' + str(end).replace('.', '', 1) + '.txt')
-        so4gp.write_file(wr_text, f_name, wr=True)
+        so4gp.write_file(wr_text, f_name, wr=False)
         print(wr_text)
     else:
         print("Invalid Algorithm Choice!")

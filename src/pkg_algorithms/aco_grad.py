@@ -8,8 +8,8 @@ def execute(f_path, min_supp, cores,  evaporation_factor, max_iteration):
         else:
             num_cores = sgp.get_num_cores()
 
-        d_set = sgp.DataGP(f_path, min_supp)
-        out_json, list_gp = sgp.acogps(f_path, min_supp, evaporation_factor, max_iteration, return_gps=True)
+        out_json, d_set = sgp.aco_graank(f_path, min_supp, evaporation_factor, max_iteration, return_obj=True)
+        lst_gp = d_set.gradual_patterns
 
         wr_line = "Algorithm: ACO-GRAANK (v4.0)\n"
         wr_line += "No. of (dataset) attributes: " + str(d_set.col_count) + '\n'
@@ -19,7 +19,7 @@ def execute(f_path, min_supp, cores,  evaporation_factor, max_iteration):
 
         wr_line += "Minimum support: " + str(min_supp) + '\n'
         wr_line += "Number of cores: " + str(num_cores) + '\n'
-        wr_line += "Number of patterns: " + str(len(list_gp)) + '\n'
+        wr_line += "Number of patterns: " + str(len(lst_gp)) + '\n'
 
         for txt in d_set.titles:
             try:
@@ -30,7 +30,7 @@ def execute(f_path, min_supp, cores,  evaporation_factor, max_iteration):
         wr_line += str("\nFile: " + f_path + '\n')
         wr_line += str("\nPattern : Support" + '\n')
 
-        for gp in list_gp:
+        for gp in lst_gp:
             wr_line += (str(gp.to_string()) + ' : ' + str(round(gp.support, 3)) + '\n')
 
         return wr_line
