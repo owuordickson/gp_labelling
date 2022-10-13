@@ -86,7 +86,7 @@ if __name__ == "__main__":
         wr_text += "\n\n Analysis of estimated GPs\n"
         wr_text += str(res_compare)
         f_name = str('res_lbl' + str(end).replace('.', '', 1) + '.txt')
-        so4gp.write_file(wr_text, f_name, wr=True)
+        so4gp.write_file(wr_text, f_name, wr=False)
         print(wr_text)
     elif algChoice == 'acograd':
         # ACO-GRAANK
