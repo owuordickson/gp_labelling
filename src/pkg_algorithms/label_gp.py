@@ -47,7 +47,7 @@ class LabelGP:
     def __init__(self, file, min_supp=0.5, max_depth=20):  # , n_jobs=1):
         self.min_supp = LabelGP.check_min_supp(min_supp)  # provided by user
         self.max_depth = int(max_depth)
-        self.gi_rids = None
+        self.gi_to_tids = None
         self.d_gp = sgp.CluDataGP(file, min_supp, no_prob=True)
         self.min_len = int(self.d_gp.row_count * self.min_supp)
         self.gp_labels = None
@@ -68,17 +68,17 @@ class LabelGP:
                     set(self.gp_labels.index[self.gp_labels.str.contains(pat=str(x[0]+'['+x[1]+']'), regex=True)]
                         .tolist())] for x in u]
 
-        self.gi_rids = SortedDict(np.array(arr_ids, dtype=object))
+        self.gi_to_tids = SortedDict(np.array(arr_ids, dtype=object))
         gc.collect()
 
-    def fit_discover(self, *, return_tids=False, return_depth=False):
+    def fit_discover(self, return_tids=False, return_depth=False):
         # fit
         if self.gp_labels is None:
             self.fit()
 
         # reverse order of support
         supp_sorted_items = sorted(
-            self.gi_rids.items(), key=lambda e: len(e[1]), reverse=True
+            self.gi_to_tids.items(), key=lambda e: len(e[1]), reverse=True
         )
 
         # dfs = Parallel(n_jobs=self.n_jobs, prefer="processes")(
@@ -161,7 +161,7 @@ class LabelGP:
         # project and reduce DB w.r.t P
         cp = (
             item
-            for item, ids in reversed(self.gi_rids.items())
+            for item, ids in reversed(self.gi_to_tids.items())
             if tids.issubset(ids)
             if item not in p
         )
@@ -181,10 +181,10 @@ class LabelGP:
             else:
                 yield raw_gp, len(tids), tids, depth
 
-            candidates = self.gi_rids.keys() - p_prime
+            candidates = self.gi_to_tids.keys() - p_prime
             candidates = candidates[: candidates.bisect_left(limit)]
             for new_limit in candidates:
-                ids = self.gi_rids[new_limit]
+                ids = self.gi_to_tids[new_limit]
                 intersection_ids = tids.intersection(ids)
                 if len(intersection_ids) >= self.min_len:  # (self.min_len/2):
                     # new pattern and its associated tids

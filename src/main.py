@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     import time
     from memory_profiler import memory_usage
-    from pkg_algorithms import aco_grad, graank, label_gp
+    from pkg_algorithms import aco_graank, graank, label_gp
 
     if algChoice == 'lblgp':
         # LBL-GP
@@ -91,9 +91,9 @@ if __name__ == "__main__":
     elif algChoice == 'acogra':
         # ACO-GRAANK
         start = time.time()
-        res_text = aco_grad.execute(filePath, minSup, numCores, cfg.EVAPORATION_FACTOR, cfg.MAX_ITERATIONS)
+        res_text = aco_graank.execute(filePath, minSup, numCores, cfg.EVAPORATION_FACTOR, cfg.MAX_ITERATIONS)
         end = time.time()
-        mem_usage = memory_usage((aco_grad.execute, (filePath, minSup, numCores, cfg.EVAPORATION_FACTOR,
+        mem_usage = memory_usage((aco_graank.execute, (filePath, minSup, numCores, cfg.EVAPORATION_FACTOR,
                                                      cfg.MAX_ITERATIONS)), interval=10)
 
         wr_text = ("Run-time: " + str(end - start) + " seconds\n")
