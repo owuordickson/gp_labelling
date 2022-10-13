@@ -61,7 +61,7 @@ class MlDataGP(sgp.DataGP):
 def generate_gp_labels_v2(data_gp):
     # 1. Generate labels
     labels = []
-    features = np.array(data_gp.d_gp, dtype=np.float64)
+    features = np.array(data_gp.data, dtype=np.float64)
     sel_nwm = data_gp.net_win_mat[::2]
     sel_nwm[sel_nwm == -1] = 2  # encode -1 as 2 in the net-win matrix
 
@@ -175,7 +175,7 @@ def gen_apriori_candidates(lst_gi):
                         k_set = set(k)
                     gp_cand_2 = gp_cand - k_set
                     inv_gp_cand_2 = {inv(x) for x in gp_cand_2}
-                    if not gp_cand_2 in set_gi and not inv_gp_cand_2 in set_gi:
+                    if gp_cand_2 not in set_gi and inv_gp_cand_2 not in set_gi:
                         is_valid_candidate = False
                         break
                 if is_valid_candidate:
@@ -229,9 +229,9 @@ def estimate_gps(gp_mat, min_sup):
     return str_winner_gps, patterns
 
 
-# ds1 = sgp.CluDataGP('../data/DATASET.csv', e_prob=0)
-# ds1 = sgp.CluDataGP('../data/c2k_02k.csv', e_prob=0)
-ds1 = sgp.CluDataGP('../data/breast_cancer.csv', e_prob=0)
+ds1 = sgp.CluDataGP('../../data/DATASET.csv', e_prob=0)
+# ds1 = sgp.CluDataGP('../../data/c2k_02k.csv', e_prob=0)
+# ds1 = sgp.CluDataGP('../../data/breast_cancer.csv', e_prob=0)
 
 df1 = generate_gp_labels_v2(ds1)
 print(df1)
