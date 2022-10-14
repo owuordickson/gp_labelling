@@ -48,7 +48,7 @@ class LabelGP:
         self.min_supp = LabelGP.check_min_supp(min_supp)  # provided by user
         self.max_depth = int(max_depth)
         self.gi_to_tids = None
-        self.d_gp = sgp.CluDataGP(file, min_supp, no_prob=True)
+        self.d_gp = sgp.ClusterGP(file, min_supp, no_prob=True)
         self.min_len = int(self.d_gp.row_count * self.min_supp)
         self.gp_labels = None
 

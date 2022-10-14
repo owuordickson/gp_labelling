@@ -3,8 +3,9 @@ import so4gp as sgp
 
 def execute(f_path, min_supp, cores, eq=False):
     try:
-        out_json, d_set = sgp.graank(f_path, min_supp, eq, return_obj=True)
-        lst_gp = d_set.gradual_patterns
+        mine_obj = sgp.GRAANK(data_source=f_path, min_sup=min_supp, eq=eq)
+        mine_obj.discover()
+        lst_gp = mine_obj.gradual_patterns
 
         if cores > 1:
             num_cores = cores
@@ -12,13 +13,13 @@ def execute(f_path, min_supp, cores, eq=False):
             num_cores = sgp.get_num_cores()
 
         wr_line = "Algorithm: GRAANK \n"
-        wr_line += "No. of (dataset) attributes: " + str(d_set.col_count) + '\n'
-        wr_line += "No. of (dataset) tuples: " + str(d_set.row_count) + '\n'
+        wr_line += "No. of (dataset) attributes: " + str(mine_obj.col_count) + '\n'
+        wr_line += "No. of (dataset) tuples: " + str(mine_obj.row_count) + '\n'
         wr_line += "Minimum support: " + str(min_supp) + '\n'
         wr_line += "Number of cores: " + str(num_cores) + '\n'
         wr_line += "Number of patterns: " + str(len(lst_gp)) + '\n\n'
 
-        for txt in d_set.titles:
+        for txt in mine_obj.titles:
             wr_line += (str(txt[0]) + '. ' + str(txt[1].decode()) + '\n')
 
         wr_line += str("\nFile: " + f_path + '\n')

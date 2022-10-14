@@ -1,5 +1,5 @@
 import gc
-from so4gp import DataGP
+from so4gp import DataGP, GP
 
 from collections import defaultdict
 from itertools import takewhile
@@ -7,6 +7,179 @@ from itertools import takewhile
 import numpy as np
 import pandas as pd
 from sortedcontainers import SortedDict
+
+
+class ExtGP(GP):
+    """Description of class ExtGP (Extended Gradual Pattern)
+
+    A class that inherits class GP which is used to create more capable GP objects. a GP object is a set of gradual
+    items and its quality is measured by its computed support value. For example given a data set with 3 columns
+    (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that
+    8 out of 10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+
+    The class GP has the following attributes:
+        gradual_items: list if GIs
+
+        support: computed support value as a float
+
+    The class ExtGP adds the following functions:
+        validate: used to validate GPs
+
+        check_am: used to verify if a GP obeys anti-monotonicity
+
+        is_duplicate: checks a GP is already extracted
+
+    """
+
+    def __init__(self):
+        """Description of class ExtGP (Extended Gradual Pattern)
+
+        A class that inherits class GP which is used to create more powerful GP objects that can be used in mining
+        approaches that implement swarm optimization techniques or cluster analysis or classification algorithms.
+
+        It adds the following attribute:
+            freq_count: frequency count of a particular GP object.
+
+        """
+        super(ExtGP, self).__init__()
+        self.freq_count = 0
+        """:type freq_count: int"""
+
+    def validate_graank(self, d_set):
+        """Description
+
+        Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
+        less than the minimum support threshold set by the user.
+
+        :param d_set: Data_GP object
+        :return: a valid GP or an empty GP
+        """
+        # pattern = [('2', '+'), ('4', '+')]
+        min_supp = d_set.thd_supp
+        n = d_set.attr_size
+        gen_pattern = ExtGP()
+        """type gen_pattern: ExtGP"""
+        bin_arr = np.array([])
+
+        for gi in self.gradual_items:
+            arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
+            if len(arg) > 0:
+                i = arg[0][0]
+                valid_bin = d_set.valid_bins[i]
+                if bin_arr.size <= 0:
+                    bin_arr = np.array([valid_bin[1], valid_bin[1]])
+                    gen_pattern.add_gradual_item(gi)
+                else:
+                    bin_arr[1] = valid_bin[1].copy()
+                    temp_bin = np.multiply(bin_arr[0], bin_arr[1])
+                    supp = float(np.sum(temp_bin)) / float(n * (n - 1.0) / 2.0)
+                    if supp >= min_supp:
+                        bin_arr[0] = temp_bin.copy()
+                        gen_pattern.add_gradual_item(gi)
+                        gen_pattern.set_support(supp)
+        if len(gen_pattern.gradual_items) <= 1:
+            return self
+        else:
+            return gen_pattern
+
+    def validate_tree(self, d_set):
+        min_supp = d_set.thd_supp
+        n = d_set.row_count
+        gen_pattern = ExtGP()
+        """type gen_pattern: ExtGP"""
+        temp_tids = None
+        for gi in self.gradual_items:
+            gi_int = gi.as_integer()
+            node = int(gi_int[0] + 1) * gi_int[1]
+            gi_int = (gi.inv_gi()).as_integer()
+            node_inv = int(gi_int[0] + 1) * gi_int[1]
+            for k, v in d_set.item_to_tids.items():
+                if node == k:
+                    if temp_tids is None:
+                        temp_tids = v
+                        gen_pattern.add_gradual_item(gi)
+                    else:
+                        temp = temp_tids.copy()
+                        temp = temp.intersection(v)
+                        if len(temp) > 1:
+                            x = np.unique(np.array(list(temp))[:, 0], axis=0)
+                            supp = len(x) / n
+                        else:
+                            supp = len(temp) / n
+
+                        if supp >= min_supp:
+                            temp_tids = temp.copy()
+                            gen_pattern.add_gradual_item(gi)
+                            gen_pattern.set_support(supp)
+                elif node_inv == k:
+                    if temp_tids is None:
+                        temp_tids = v
+                        gen_pattern.add_gradual_item(gi)
+                    else:
+                        temp = temp_tids.copy()
+                        temp = temp.intersection(v)
+                        if len(temp) > 1:
+                            x = np.unique(np.array(list(temp))[:, 0], axis=0)
+                            supp = len(x) / n
+                        else:
+                            supp = len(temp) / n
+
+                        if supp >= min_supp:
+                            temp_tids = temp.copy()
+                            gen_pattern.add_gradual_item(gi)
+                            gen_pattern.set_support(supp)
+        if len(gen_pattern.gradual_items) <= 1:
+            return self
+        else:
+            return gen_pattern
+
+    def check_am(self, gp_list, subset=True):
+        """Description
+
+        Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
+
+        :param gp_list: list of existing GPs
+        :param subset: check if it is a subset
+        :return: True if superset/subset, False otherwise
+        """
+        result = False
+        if subset:
+            for pat in gp_list:
+                result1 = set(self.get_pattern()).issubset(set(pat.get_pattern()))
+                result2 = set(self.inv_pattern()).issubset(set(pat.get_pattern()))
+                if result1 or result2:
+                    result = True
+                    break
+        else:
+            for pat in gp_list:
+                result1 = set(self.get_pattern()).issuperset(set(pat.get_pattern()))
+                result2 = set(self.inv_pattern()).issuperset(set(pat.get_pattern()))
+                if result1 or result2:
+                    result = True
+                    break
+        return result
+
+    def is_duplicate(self, valid_gps, invalid_gps=None):
+        """Description
+
+        Checks if a pattern is in the list of winner GPs or loser GPs
+
+        :param valid_gps: list of GPs
+        :param invalid_gps: list of GPs
+        :return: True if pattern is either list, False otherwise
+        """
+        if invalid_gps is None:
+            pass
+        else:
+            for pat in invalid_gps:
+                if set(self.get_pattern()) == set(pat.get_pattern()) or \
+                        set(self.inv_pattern()) == set(pat.get_pattern()):
+                    return True
+        for pat in valid_gps:
+            if set(self.get_pattern()) == set(pat.get_pattern()) or \
+                    set(self.inv_pattern()) == set(pat.get_pattern()):
+                return True
+        return False
 
 
 class DfsDataGP:
@@ -20,7 +193,7 @@ class DfsDataGP:
         self.attr_cols = self._get_attr_cols()
 
         # self.cost_matrix = np.ones((self.col_count, 3), dtype=int)
-        self.item_to_tids = defaultdict(set)
+        self.gi_to_tids = defaultdict(set)
         self.gradual_patterns = None
         # self.encoded_data = np.array([])
 
@@ -114,16 +287,20 @@ class DfsDataGP:
         for t in range(len(encoded_data)):
             transaction = encoded_data[t][2:]
             for item in transaction:
-                self.item_to_tids[item].add(tuple(encoded_data[t][:2]))
+                self.gi_to_tids[item].add(tuple(encoded_data[t][:2]))
 
-        low_supp_items = [k for k, v in self.item_to_tids.items()
+        low_supp_items = [k for k, v in self.gi_to_tids.items()
                           if len(np.unique(np.array(list(v))[:, 0], axis=0))
                           < self.min_len]
         for item in low_supp_items:
-            del self.item_to_tids[item]
+            del self.gi_to_tids[item]
 
-        self.item_to_tids = SortedDict(self.item_to_tids)
+        self.gi_to_tids = SortedDict(self.gi_to_tids)
         gc.collect()
+
+
+class LcmGP:
+
 
 
 class LCM:

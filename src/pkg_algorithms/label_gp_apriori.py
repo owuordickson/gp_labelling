@@ -229,9 +229,9 @@ def estimate_gps(gp_mat, min_sup):
     return str_winner_gps, patterns
 
 
-ds1 = sgp.CluDataGP('../../data/DATASET.csv', e_prob=0)
-# ds1 = sgp.CluDataGP('../../data/c2k_02k.csv', e_prob=0)
-# ds1 = sgp.CluDataGP('../../data/breast_cancer.csv', e_prob=0)
+ds1 = sgp.ClusterGP('../../data/DATASET.csv', e_prob=0)
+# ds1 = sgp.ClusterGP('../../data/c2k_02k.csv', e_prob=0)
+# ds1 = sgp.ClusterGP('../../data/breast_cancer.csv', e_prob=0)
 
 df1 = generate_gp_labels_v2(ds1)
 print(df1)

@@ -8,12 +8,13 @@ def execute(f_path, min_supp, cores,  evaporation_factor, max_iteration):
         else:
             num_cores = sgp.get_num_cores()
 
-        out_json, d_set = sgp.aco_graank(f_path, min_supp, evaporation_factor, max_iteration, return_obj=True)
-        lst_gp = d_set.gradual_patterns
+        mine_obj = sgp.AntGRAANK(f_path, min_supp, max_iter=max_iteration, e_factor=evaporation_factor)
+        mine_obj.discover()
+        lst_gp = mine_obj.gradual_patterns
 
         wr_line = "Algorithm: ACO-GRAANK (v4.0)\n"
-        wr_line += "No. of (dataset) attributes: " + str(d_set.col_count) + '\n'
-        wr_line += "No. of (dataset) tuples: " + str(d_set.row_count) + '\n'
+        wr_line += "No. of (dataset) attributes: " + str(mine_obj.col_count) + '\n'
+        wr_line += "No. of (dataset) tuples: " + str(mine_obj.row_count) + '\n'
         wr_line += "Evaporation factor: " + str(evaporation_factor) + '\n'
         wr_line += "Number of iterations: " + str(max_iteration) + '\n'
 
@@ -21,7 +22,7 @@ def execute(f_path, min_supp, cores,  evaporation_factor, max_iteration):
         wr_line += "Number of cores: " + str(num_cores) + '\n'
         wr_line += "Number of patterns: " + str(len(lst_gp)) + '\n'
 
-        for txt in d_set.titles:
+        for txt in mine_obj.titles:
             try:
                 wr_line += (str(txt.key) + '. ' + str(txt.value.decode()) + '\n')
             except AttributeError:
