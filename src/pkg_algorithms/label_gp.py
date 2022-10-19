@@ -68,7 +68,7 @@ class LabelGP:
                         .tolist())] for x in u]
 
         self.gi_to_tids = SortedDict(np.array(arr_ids, dtype=object))
-        print(self.gi_to_tids)
+        # print(self.gi_to_tids)
         gc.collect()
 
     def fit_discover(self, return_tids=False, return_depth=False):
@@ -84,11 +84,13 @@ class LabelGP:
         # dfs = Parallel(n_jobs=self.n_jobs, prefer="processes")(
         #    delayed(self._explore_root)(item, tids) for item, tids in supp_sorted_items
         # )
-        gps = [self._explore_root(item, tids) for item, tids in supp_sorted_items]
+        res_data = [self._explore_root(item, tids) for item, tids in supp_sorted_items]
+        # for r in res_data:
+        #    print(r)
 
         # make sure we have something to concat
-        gps.append(pd.DataFrame(columns=["itemset", "support", "tids", "depth"]))
-        df = pd.concat(gps, axis=0, ignore_index=True)
+        res_data.append(pd.DataFrame(columns=["itemset", "support", "tids", "depth"]))
+        df = pd.concat(res_data, axis=0, ignore_index=True)
 
         df, gps = self._filter_gps(df)
 
@@ -105,7 +107,7 @@ class LabelGP:
         labels = []
         features = self.d_gp.data  # np.array(self.d_gp.data, dtype=np.float64)
         win_mat = self.d_gp.win_mat
-        n = self.d_gp.row_count
+        total_len = self.d_gp.row_count
         # win_mat[win_mat == 0] = self.min_len
 
         weight_vec_pos = np.array([np.count_nonzero(vec > 0) for vec in win_mat])
@@ -119,11 +121,12 @@ class LabelGP:
             temp_label = ''
             gi = 1
             for wins_count in win_mat[:, i]:
-                supp = float(abs(wins_count)) / float(n * (n - 1.0) / 2.0)
+                supp = float(abs(wins_count)) / float(total_len)
+                # print(supp)
                 weight = weight_vec[gi - 1]
-                if (wins_count > 0) and (supp >= self.d_gp.thd_supp) and (weight >= 0.5):
+                if (wins_count > 0) and (weight >= 0.5) and (supp >= self.d_gp.thd_supp):
                     temp_label += str(gi) + '+'
-                elif (wins_count < 0) and (supp >= self.d_gp.thd_supp) and ((1 - weight) >= 0.5):
+                elif (wins_count < 0) and ((1 - weight) >= 0.5) and (supp >= self.d_gp.thd_supp):
                     temp_label += str(gi) + '-'
                 gi += 1
             labels.append(temp_label)
@@ -150,6 +153,7 @@ class LabelGP:
         # 2c. create data-frame
         self.d_gp.data = pd.DataFrame(new_data, columns=column_names)
         self.gp_labels = self.d_gp.data['GP Label']
+        # print(self.gp_labels)
 
     def _explore_root(self, item, tids):
         it = self._inner((frozenset(), tids), item)
@@ -160,7 +164,7 @@ class LabelGP:
         if depth >= self.max_depth:
             return
         p, tids = p_tids
-        n = self.d_gp.row_count
+        total_len = self.d_gp.row_count
         # project and reduce DB w.r.t P
         cp = (
             item
@@ -180,7 +184,7 @@ class LabelGP:
             raw_gp = np.array(list(p_prime))
             # print(str(len(raw_gp)) + ': ' + str(tids))
             if raw_gp.size <= 1:
-                yield np.nan, len(tids), tids, depth
+                yield np.nan, 0, {}, 0
             else:
                 yield raw_gp, len(tids), tids, depth
 
@@ -189,10 +193,9 @@ class LabelGP:
             for new_limit in candidates:
                 ids = self.gi_to_tids[new_limit]
                 intersection_ids = tids.intersection(ids)
-                # tids_len = len(intersection_ids)  # (tids_len * 0.5) * (tids_len - 1)
-                supp = float(len(intersection_ids)) / float(n * (n - 1.0) / 2.0)
+                supp = float(len(intersection_ids)) / float(total_len)
 
-                if supp >= self.d_gp.thd_supp:  # (self.min_len/2):
+                if supp >= (self.d_gp.thd_supp/2):  # (self.min_len/2):
                     # new pattern and its associated tids
                     new_p_tids = (p_prime, intersection_ids)
                     yield from self._inner(new_p_tids, new_limit, depth + 1)
@@ -287,14 +290,14 @@ def execute(f_path, l_gp, cores):
         return wr_line
 
 
-filePath = '../../data/DATASET.csv'
-lgp = LabelGP(filePath, min_supp=0.2)
-lgp.fit()
-res_df1, estimated_gps1 = lgp.fit_discover(return_depth=True)
+# filePath = '../../data/DATASET.csv'
+# lgp = LabelGP(filePath, min_supp=0.2)
+# lgp.fit()
+# res_df1, estimated_gps1 = lgp.fit_discover(return_depth=True)
 
 # print(l_gp.d_gp)
 # print("\n")
-print(res_df1)
+# print(res_df1)
 
 # print(sgp.analyze_gps('../data/DATASET.csv', 0.4, est_gps, approach='dfs'))
 # print(sgp.analyze_gps('../../data/c2k_02k.csv', 0.5, est_gps, approach='dfs'))

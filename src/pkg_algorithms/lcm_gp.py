@@ -159,4 +159,4 @@ mine_obj.fit()
 res_df, lst_gps = mine_obj.fit_discover()
 print(res_df)
 
-# print(analyze_gps(filePath, minSup, lst_gps, approach='dfs'))
+print(analyze_gps(filePath, minSup, lst_gps, approach='dfs'))
