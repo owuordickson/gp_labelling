@@ -94,7 +94,7 @@ if __name__ == "__main__":
         res_text = aco_graank.execute(filePath, minSup, numCores, cfg.EVAPORATION_FACTOR, cfg.MAX_ITERATIONS)
         end = time.time()
         mem_usage = memory_usage((aco_graank.execute, (filePath, minSup, numCores, cfg.EVAPORATION_FACTOR,
-                                                     cfg.MAX_ITERATIONS)), interval=10)
+                                                       cfg.MAX_ITERATIONS)), interval=10)
 
         wr_text = ("Run-time: " + str(end - start) + " seconds\n")
         wr_text += ("Memory Usage (MiB): " + str(mem_usage) + " \n")
