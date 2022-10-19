@@ -45,11 +45,10 @@ from sortedcontainers import SortedDict
 class LabelGP:
 
     def __init__(self, file, min_supp=0.5, max_depth=20):  # , n_jobs=1):
-        self.min_supp = LabelGP.check_min_supp(min_supp)  # provided by user
+        self.min_supp = min_supp  # provided by user
         self.max_depth = int(max_depth)
         self.gi_to_tids = None
         self.d_gp = sgp.ClusterGP(file, min_supp, no_prob=True)
-        self.min_len = int(self.d_gp.row_count * self.min_supp)
         self.gp_labels = None
 
     def fit(self):
@@ -106,6 +105,7 @@ class LabelGP:
         labels = []
         features = self.d_gp.data  # np.array(self.d_gp.data, dtype=np.float64)
         win_mat = self.d_gp.win_mat
+        n = self.d_gp.row_count
         # win_mat[win_mat == 0] = self.min_len
 
         weight_vec_pos = np.array([np.count_nonzero(vec > 0) for vec in win_mat])
@@ -118,11 +118,12 @@ class LabelGP:
         for i in range(win_mat.shape[1]):  # all columns
             temp_label = ''
             gi = 1
-            for wins in win_mat[:, i]:
+            for wins_count in win_mat[:, i]:
+                supp = float(abs(wins_count)) / float(n * (n - 1.0) / 2.0)
                 weight = weight_vec[gi - 1]
-                if (wins > 0) and (wins >= self.min_len) and (weight >= 0.5):
+                if (wins_count > 0) and (supp >= self.d_gp.thd_supp) and (weight >= 0.5):
                     temp_label += str(gi) + '+'
-                elif (wins < 0) and (abs(wins) >= self.min_len) and ((1 - weight) >= 0.5):
+                elif (wins_count < 0) and (supp >= self.d_gp.thd_supp) and ((1 - weight) >= 0.5):
                     temp_label += str(gi) + '-'
                 gi += 1
             labels.append(temp_label)
@@ -159,6 +160,7 @@ class LabelGP:
         if depth >= self.max_depth:
             return
         p, tids = p_tids
+        n = self.d_gp.row_count
         # project and reduce DB w.r.t P
         cp = (
             item
@@ -187,7 +189,10 @@ class LabelGP:
             for new_limit in candidates:
                 ids = self.gi_to_tids[new_limit]
                 intersection_ids = tids.intersection(ids)
-                if len(intersection_ids) >= self.min_len:  # (self.min_len/2):
+                # tids_len = len(intersection_ids)  # (tids_len * 0.5) * (tids_len - 1)
+                supp = float(len(intersection_ids)) / float(n * (n - 1.0) / 2.0)
+
+                if supp >= self.d_gp.thd_supp:  # (self.min_len/2):
                     # new pattern and its associated tids
                     new_p_tids = (p_prime, intersection_ids)
                     yield from self._inner(new_p_tids, new_limit, depth + 1)
@@ -195,7 +200,7 @@ class LabelGP:
     def _filter_gps(self, df):
         lst_gp = []
         unique_ids = []
-        total_len = int(self.gp_labels.shape[0])
+        total_len = self.d_gp.row_count
 
         # Remove useless GP items
         df = df[df.itemset.notnull()]
@@ -239,7 +244,7 @@ class LabelGP:
 
             raw_gps[i][0] = gp.to_string()
 
-            if (not gp.is_duplicate(lst_gp)) and (len(gp.gradual_items) > 1) and (gp.support >= self.min_supp):
+            if (not gp.is_duplicate(lst_gp)) and (len(gp.gradual_items) > 1) and (gp.support >= self.d_gp.thd_supp):
                 unique_ids.append(i)
                 lst_gp.append(gp)
                 # print(str(gp.to_string()) + ': ' + str(gp.support))
@@ -248,22 +253,6 @@ class LabelGP:
         new_df = pd.DataFrame(data=raw_gps, columns=["itemset", "support", "tids", "depth"])
 
         return new_df, lst_gp
-
-    @staticmethod
-    def check_min_supp(min_supp, accept_absolute=True):
-        if isinstance(min_supp, int):
-            if not accept_absolute:
-                raise ValueError(
-                    'Absolute support is prohibited, please provide a float value between 0 and 1'
-                )
-            if min_supp < 1:
-                raise ValueError('Minimum support must be strictly positive')
-        elif isinstance(min_supp, float):
-            if min_supp < 0 or min_supp > 1:
-                raise ValueError('Minimum support must be between 0 and 1')
-        else:
-            raise TypeError('Minimum support must be of type int or float')
-        return min_supp
 
 
 def execute(f_path, l_gp, cores):
@@ -301,11 +290,11 @@ def execute(f_path, l_gp, cores):
 filePath = '../../data/DATASET.csv'
 lgp = LabelGP(filePath, min_supp=0.2)
 lgp.fit()
-res_df, estimated_gps = lgp.fit_discover(return_depth=True)
+res_df1, estimated_gps1 = lgp.fit_discover(return_depth=True)
 
 # print(l_gp.d_gp)
 # print("\n")
-print(res_df)
+print(res_df1)
 
 # print(sgp.analyze_gps('../data/DATASET.csv', 0.4, est_gps, approach='dfs'))
 # print(sgp.analyze_gps('../../data/c2k_02k.csv', 0.5, est_gps, approach='dfs'))
