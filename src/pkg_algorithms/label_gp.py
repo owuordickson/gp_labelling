@@ -195,7 +195,7 @@ class LabelGP:
                 intersection_ids = tids.intersection(ids)
                 supp = float(len(intersection_ids)) / float(total_len)
 
-                if supp >= (self.d_gp.thd_supp/2):  # (self.min_len/2):
+                if supp >= (self.d_gp.thd_supp/1):  # (self.min_len/2):
                     # new pattern and its associated tids
                     new_p_tids = (p_prime, intersection_ids)
                     yield from self._inner(new_p_tids, new_limit, depth + 1)
