@@ -69,6 +69,7 @@ class LabelGP:
                         .tolist())] for x in u]
 
         self.gi_to_tids = SortedDict(np.array(arr_ids, dtype=object))
+        print(self.gi_to_tids)
         gc.collect()
 
     def fit_discover(self, return_tids=False, return_depth=False):
@@ -297,13 +298,14 @@ def execute(f_path, l_gp, cores):
         return wr_line
 
 
-# l_gp = LabelGP('../../data/c2k_02k.csv', min_supp=0.5)
-# l_gp = LabelGP('../data/breast_cancer.csv', min_supp=0.2)
-# res_df, est_gps = l_gp.fit_discover(return_depth=True)
+filePath = '../../data/DATASET.csv'
+lgp = LabelGP(filePath, min_supp=0.2)
+lgp.fit()
+res_df, estimated_gps = lgp.fit_discover(return_depth=True)
 
 # print(l_gp.d_gp)
 # print("\n")
-# print(res_df)
+print(res_df)
 
 # print(sgp.analyze_gps('../data/DATASET.csv', 0.4, est_gps, approach='dfs'))
 # print(sgp.analyze_gps('../../data/c2k_02k.csv', 0.5, est_gps, approach='dfs'))
