@@ -106,8 +106,9 @@ class LabelGP:
         # data_gp = self.data_gp
         labels = []
         features = self.d_gp.data  # np.array(self.d_gp.data, dtype=np.float64)
+        # nodes_mat = self.d_gp.nodes_mat
         win_mat = self.d_gp.win_mat
-        total_len = self.d_gp.row_count
+        row_count = self.d_gp.row_count
         # win_mat[win_mat == 0] = self.min_len
 
         weight_vec_pos = np.array([np.count_nonzero(vec > 0) for vec in win_mat])
@@ -115,13 +116,40 @@ class LabelGP:
         weight_vec = weight_vec_pos / np.add(weight_vec_neg, weight_vec_pos)
 
         # print(win_mat)
-        # print(weight_vec)
+        # print("weight: " + str(weight_vec))
+        # print(nodes_mat.shape)
+        # print(nodes_mat)
+        # print("\n... NEXT ...")
+
+        """for i in range(row_count):
+            temp_label = ''
+            label_set = set()
+            gi = 1
+            for j in range(nodes_mat.shape[0]):
+                ij_obj = nodes_mat[j][i]
+                if len(ij_obj[0]) > len(ij_obj[1]):
+                    temp_set = ij_obj[0] if gi == 1 else label_set.intersection(ij_obj[0])
+                    supp = len(temp_set) / row_count
+                    if supp >= self.d_gp.thd_supp:
+                        temp_label += str(gi) + '+'
+                        label_set = temp_set
+                else:
+                    temp_set = ij_obj[1] if gi == 1 else label_set.intersection(ij_obj[1])
+                    supp = len(temp_set) / row_count
+                    if supp >= self.d_gp.thd_supp:
+                        temp_label += str(gi) + '-'
+                        label_set = temp_set
+                gi += 1
+                # print(label_set)
+            labels.append(temp_label)
+            # print("\n")"""
 
         for i in range(win_mat.shape[1]):  # all columns
             temp_label = ''
             gi = 1
             for wins_count in win_mat[:, i]:
-                supp = float(abs(wins_count)) / float(total_len)
+                supp = float(abs(wins_count)) / float(row_count)
+                # print(wins_count)
                 # print(supp)
                 weight = weight_vec[gi - 1]
                 if (wins_count > 0) and (weight >= 0.5) and (supp >= self.d_gp.thd_supp):
@@ -290,15 +318,18 @@ def execute(f_path, l_gp, cores):
         return wr_line
 
 
-# filePath = '../../data/DATASET.csv'
-# lgp = LabelGP(filePath, min_supp=0.2)
+filePath = '../../data/DATASET.csv'  # 0.25
+filePath = '../../data/breast_cancer.csv'  # 0.2
+# filePath = '../../data/c2k_02k.csv'  # 0.5
+minSup = 0.2
+lgp = LabelGP(filePath, min_supp=minSup)
 # lgp.fit()
-# res_df1, estimated_gps1 = lgp.fit_discover(return_depth=True)
+res_df1, estimated_gps1 = lgp.fit_discover(return_depth=True)
 
-# print(l_gp.d_gp)
-# print("\n")
-# print(res_df1)
+print(lgp.d_gp.data)
+print("\n")
+print(res_df1)
 
-# print(sgp.analyze_gps('../data/DATASET.csv', 0.4, est_gps, approach='dfs'))
+print(sgp.analyze_gps(filePath, minSup, estimated_gps1, approach='dfs'))
 # print(sgp.analyze_gps('../../data/c2k_02k.csv', 0.5, est_gps, approach='dfs'))
 # print(sgp.analyze_gps('../data/breast_cancer.csv', 0.2, est_gps, approach='dfs'))
