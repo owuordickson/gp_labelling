@@ -46,6 +46,7 @@ class LabelGP:
 
     def __init__(self, file, min_supp=0.5, predict=False):  # , n_jobs=1):
         self.d_gp = sgp.ClusterGP(file, min_supp, no_prob=True)
+        self.ml_model = None
         if not predict:
             self.gp_labels = self._generate_labels()
         else:
@@ -65,6 +66,7 @@ class LabelGP:
 
         print(win_mat)
         print("weight: " + str(weight_vec))
+        print("\n")
 
         for i in range(win_mat.shape[1]):  # all columns
             temp_label = ''
@@ -120,16 +122,23 @@ class LabelGRITE:
         self.row_count = gp_labels.shape[0]
         self.gi_to_tids = None
 
-    def _compute_gi_bitmap(self):
-        pass
+    def fit_label_bitmap(self):
+        gp_labels = self.gp_labels
+        # 1. Construct set of all the GIs
+        set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,')[:-1].split(',')) for obj in gp_labels]
 
-    def fit(self):
+        print(set_gps)
+        print("\n")
+        self.fit_tids(set_gps)
+
+    def fit_tids(self, set_gps):
         # self.n_transactions = 0  # reset for safety
 
         # 1. Construct set of all the GIs
-        set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,').split(',')) for obj in self.gp_labels]
+        # set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,').split(',')) for obj in self.gp_labels]
+        # print(set_gps)
         u = set.union(*set_gps)
-        u.discard('')
+        # u.discard('')
 
         # 2. Generate Transaction IDs
         arr_ids = [[int(x[0])
@@ -144,8 +153,9 @@ class LabelGRITE:
 
     def discover(self, return_tids=False, return_depth=False):
         # fit
-        if self.gi_to_tids is None:
-            self.fit()
+        self.fit_label_bitmap()
+        # if self.gi_to_tids is None:
+        #    self.fit_tids()
 
         # reverse order of support
         supp_sorted_items = sorted(
@@ -163,7 +173,7 @@ class LabelGRITE:
         res_data.append(pd.DataFrame(columns=["itemset", "support", "tids", "depth"]))
         df = pd.concat(res_data, axis=0, ignore_index=True)
 
-        df, gps = self._filter_gps(df)
+        df, gps = self._extract_gps(df)
 
         if not return_tids:
             df.drop("tids", axis=1, inplace=True)
@@ -217,7 +227,7 @@ class LabelGRITE:
                     new_p_tids = (p_prime, intersection_ids)
                     yield from self._inner(new_p_tids, new_limit, depth + 1)
 
-    def _filter_gps(self, df):
+    def _extract_gps(self, df):
         lst_gp = []
         unique_ids = []
         total_len = self.row_count
