@@ -44,105 +44,27 @@ from sortedcontainers import SortedDict
 
 class LabelGP:
 
-    def __init__(self, file, min_supp=0.5, max_depth=20):  # , n_jobs=1):
-        self.min_supp = min_supp  # provided by user
-        self.max_depth = int(max_depth)
-        self.gi_to_tids = None
+    def __init__(self, file, min_supp=0.5, predict=False):  # , n_jobs=1):
         self.d_gp = sgp.ClusterGP(file, min_supp, no_prob=True)
-        self.gp_labels = None
-
-    def fit(self):
-        # self.n_transactions = 0  # reset for safety
-        self._generate_labels()
-
-        # 1. Construct set of all the GIs
-        set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,').split(',')) for obj in self.gp_labels]
-        u = set.union(*set_gps)
-        u.discard('')
-
-        # 2. Generate Transaction IDs
-        arr_ids = [[int(x[0])
-                    if x[1] == '+'
-                    else (-1 * int(x[0])),
-                    set(self.gp_labels.index[self.gp_labels.str.contains(pat=str(x[0]+'['+x[1]+']'), regex=True)]
-                        .tolist())] for x in u]
-
-        self.gi_to_tids = SortedDict(np.array(arr_ids, dtype=object))
-        # print(self.gi_to_tids)
-        gc.collect()
-
-    def fit_discover(self, return_tids=False, return_depth=False):
-        # fit
-        if self.gp_labels is None:
-            self.fit()
-
-        # reverse order of support
-        supp_sorted_items = sorted(
-            self.gi_to_tids.items(), key=lambda e: len(e[1]), reverse=True
-        )
-
-        # dfs = Parallel(n_jobs=self.n_jobs, prefer="processes")(
-        #    delayed(self._explore_root)(item, tids) for item, tids in supp_sorted_items
-        # )
-        res_data = [self._explore_root(item, tids) for item, tids in supp_sorted_items]
-        # for r in res_data:
-        #    print(r)
-
-        # make sure we have something to concat
-        res_data.append(pd.DataFrame(columns=["itemset", "support", "tids", "depth"]))
-        df = pd.concat(res_data, axis=0, ignore_index=True)
-
-        df, gps = self._filter_gps(df)
-
-        if not return_tids:
-            df.drop("tids", axis=1, inplace=True)
-
-        if not return_depth:
-            df.drop("depth", axis=1, inplace=True)
-        return df, gps
+        if not predict:
+            self.gp_labels = self._generate_labels()
+        else:
+            self.gp_labels = None  # predicted labels
 
     def _generate_labels(self):
         # 1. Generate labels
-        # data_gp = self.data_gp
         labels = []
-        features = self.d_gp.data  # np.array(self.d_gp.data, dtype=np.float64)
+        features = self.d_gp.data
         # nodes_mat = self.d_gp.nodes_mat
         win_mat = self.d_gp.win_mat
         row_count = self.d_gp.row_count
-        # win_mat[win_mat == 0] = self.min_len
 
         weight_vec_pos = np.array([np.count_nonzero(vec > 0) for vec in win_mat])
         weight_vec_neg = np.array([np.count_nonzero(vec < 0) for vec in win_mat])
         weight_vec = weight_vec_pos / np.add(weight_vec_neg, weight_vec_pos)
 
-        # print(win_mat)
-        # print("weight: " + str(weight_vec))
-        # print(nodes_mat.shape)
-        # print(nodes_mat)
-        # print("\n... NEXT ...")
-
-        """for i in range(row_count):
-            temp_label = ''
-            label_set = set()
-            gi = 1
-            for j in range(nodes_mat.shape[0]):
-                ij_obj = nodes_mat[j][i]
-                if len(ij_obj[0]) > len(ij_obj[1]):
-                    temp_set = ij_obj[0] if gi == 1 else label_set.intersection(ij_obj[0])
-                    supp = len(temp_set) / row_count
-                    if supp >= self.d_gp.thd_supp:
-                        temp_label += str(gi) + '+'
-                        label_set = temp_set
-                else:
-                    temp_set = ij_obj[1] if gi == 1 else label_set.intersection(ij_obj[1])
-                    supp = len(temp_set) / row_count
-                    if supp >= self.d_gp.thd_supp:
-                        temp_label += str(gi) + '-'
-                        label_set = temp_set
-                gi += 1
-                # print(label_set)
-            labels.append(temp_label)
-            # print("\n")"""
+        print(win_mat)
+        print("weight: " + str(weight_vec))
 
         for i in range(win_mat.shape[1]):  # all columns
             temp_label = ''
@@ -180,8 +102,75 @@ class LabelGP:
 
         # 2c. create data-frame
         self.d_gp.data = pd.DataFrame(new_data, columns=column_names)
-        self.gp_labels = self.d_gp.data['GP Label']
-        # print(self.gp_labels)
+        return self.d_gp.data['GP Label']
+
+    def train_labels(self):
+        pass
+
+    def predict_labels(self):
+        pass
+
+
+class LabelGRITE:
+
+    def __init__(self, gp_labels, min_supp=0.5, max_depth=20):
+        self.min_supp = min_supp  # provided by user
+        self.max_depth = int(max_depth)
+        self.gp_labels = gp_labels
+        self.row_count = gp_labels.shape[0]
+        self.gi_to_tids = None
+
+    def _compute_gi_bitmap(self):
+        pass
+
+    def fit(self):
+        # self.n_transactions = 0  # reset for safety
+
+        # 1. Construct set of all the GIs
+        set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,').split(',')) for obj in self.gp_labels]
+        u = set.union(*set_gps)
+        u.discard('')
+
+        # 2. Generate Transaction IDs
+        arr_ids = [[int(x[0])
+                    if x[1] == '+'
+                    else (-1 * int(x[0])),
+                    set(self.gp_labels.index[self.gp_labels.str.contains(pat=str(x[0]+'['+x[1]+']'), regex=True)]
+                        .tolist())] for x in u]
+
+        self.gi_to_tids = SortedDict(np.array(arr_ids, dtype=object))
+        # print(self.gi_to_tids)
+        gc.collect()
+
+    def discover(self, return_tids=False, return_depth=False):
+        # fit
+        if self.gi_to_tids is None:
+            self.fit()
+
+        # reverse order of support
+        supp_sorted_items = sorted(
+            self.gi_to_tids.items(), key=lambda e: len(e[1]), reverse=True
+        )
+
+        # dfs = Parallel(n_jobs=self.n_jobs, prefer="processes")(
+        #    delayed(self._explore_root)(item, tids) for item, tids in supp_sorted_items
+        # )
+        res_data = [self._explore_root(item, tids) for item, tids in supp_sorted_items]
+        # for r in res_data:
+        #    print(r)
+
+        # make sure we have something to concat
+        res_data.append(pd.DataFrame(columns=["itemset", "support", "tids", "depth"]))
+        df = pd.concat(res_data, axis=0, ignore_index=True)
+
+        df, gps = self._filter_gps(df)
+
+        if not return_tids:
+            df.drop("tids", axis=1, inplace=True)
+
+        if not return_depth:
+            df.drop("depth", axis=1, inplace=True)
+        return df, gps
 
     def _explore_root(self, item, tids):
         it = self._inner((frozenset(), tids), item)
@@ -192,7 +181,7 @@ class LabelGP:
         if depth >= self.max_depth:
             return
         p, tids = p_tids
-        total_len = self.d_gp.row_count
+        total_len = self.row_count
         # project and reduce DB w.r.t P
         cp = (
             item
@@ -223,7 +212,7 @@ class LabelGP:
                 intersection_ids = tids.intersection(ids)
                 supp = float(len(intersection_ids)) / float(total_len)
 
-                if supp >= (self.d_gp.thd_supp/1):  # (self.min_len/2):
+                if supp >= (self.min_supp/1):  # 0.2 (determines no. of candidates)
                     # new pattern and its associated tids
                     new_p_tids = (p_prime, intersection_ids)
                     yield from self._inner(new_p_tids, new_limit, depth + 1)
@@ -231,7 +220,7 @@ class LabelGP:
     def _filter_gps(self, df):
         lst_gp = []
         unique_ids = []
-        total_len = self.d_gp.row_count
+        total_len = self.row_count
 
         # Remove useless GP items
         df = df[df.itemset.notnull()]
@@ -275,7 +264,7 @@ class LabelGP:
 
             raw_gps[i][0] = gp.to_string()
 
-            if (not gp.is_duplicate(lst_gp)) and (len(gp.gradual_items) > 1) and (gp.support >= self.d_gp.thd_supp):
+            if (not gp.is_duplicate(lst_gp)) and (len(gp.gradual_items) > 1) and (gp.support >= self.min_supp):
                 unique_ids.append(i)
                 lst_gp.append(gp)
                 # print(str(gp.to_string()) + ': ' + str(gp.support))
@@ -286,9 +275,9 @@ class LabelGP:
         return new_df, lst_gp
 
 
-def execute(f_path, l_gp, cores):
+def execute(f_path, mine_obj, cores):
     try:
-        res_df, estimated_gps = l_gp.fit_discover(return_depth=True)
+        res_df, estimated_gps = mine_obj.discover(return_depth=True)
 
         if cores > 1:
             num_cores = cores
@@ -296,13 +285,13 @@ def execute(f_path, l_gp, cores):
             num_cores = sgp.get_num_cores()
 
         wr_line = "Algorithm: LBL-GP \n"
-        wr_line += "No. of (dataset) attributes: " + str(l_gp.d_gp.col_count) + '\n'
-        wr_line += "No. of (dataset) tuples: " + str(l_gp.d_gp.row_count) + '\n'
-        wr_line += "Minimum support: " + str(l_gp.d_gp.thd_supp) + '\n'
+        wr_line += "No. of (dataset) attributes: " + str(mine_obj.d_gp.col_count) + '\n'
+        wr_line += "No. of (dataset) tuples: " + str(mine_obj.d_gp.row_count) + '\n'
+        wr_line += "Minimum support: " + str(mine_obj.d_gp.thd_supp) + '\n'
         wr_line += "Number of cores: " + str(num_cores) + '\n'
         wr_line += "Number of patterns: " + str(len(estimated_gps)) + '\n\n'
 
-        for txt in l_gp.d_gp.titles:
+        for txt in mine_obj.d_gp.titles:
             wr_line += (str(txt[0]) + '. ' + str(txt[1].decode()) + '\n')
 
         wr_line += str("\nFile: " + f_path + '\n')
@@ -319,12 +308,14 @@ def execute(f_path, l_gp, cores):
 
 
 filePath = '../../data/DATASET.csv'  # 0.25
-filePath = '../../data/breast_cancer.csv'  # 0.2
+# filePath = '../../data/breast_cancer.csv'  # 0.2
 # filePath = '../../data/c2k_02k.csv'  # 0.5
 minSup = 0.2
 lgp = LabelGP(filePath, min_supp=minSup)
+mineObj = LabelGRITE(lgp.gp_labels, min_supp=minSup)
+
 # lgp.fit()
-res_df1, estimated_gps1 = lgp.fit_discover(return_depth=True)
+res_df1, estimated_gps1 = mineObj.discover(return_depth=True)
 
 print(lgp.d_gp.data)
 print("\n")
