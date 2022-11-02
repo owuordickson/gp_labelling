@@ -126,18 +126,22 @@ class LabelGRITE:
         gp_labels = self.gp_labels
         # 1. Construct set of all the GIs
         set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,')[:-1].split(',')) for obj in gp_labels]
+        u = set.union(*set_gps)
+        # arr = np.array(list(u), dtype=int)
 
         print(set_gps)
+        print(u)
+        # print(arr)
         print("\n")
-        self.fit_tids(set_gps)
+        self.fit_tids(u)
 
-    def fit_tids(self, set_gps):
+    def fit_tids(self, all_gi):
         # self.n_transactions = 0  # reset for safety
 
         # 1. Construct set of all the GIs
         # set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,').split(',')) for obj in self.gp_labels]
         # print(set_gps)
-        u = set.union(*set_gps)
+        # u = set.union(*set_gps)
         # u.discard('')
 
         # 2. Generate Transaction IDs
@@ -145,7 +149,7 @@ class LabelGRITE:
                     if x[1] == '+'
                     else (-1 * int(x[0])),
                     set(self.gp_labels.index[self.gp_labels.str.contains(pat=str(x[0]+'['+x[1]+']'), regex=True)]
-                        .tolist())] for x in u]
+                        .tolist())] for x in all_gi]
 
         self.gi_to_tids = SortedDict(np.array(arr_ids, dtype=object))
         # print(self.gi_to_tids)
