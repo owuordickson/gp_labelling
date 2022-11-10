@@ -1,16 +1,17 @@
-import so4gp as sgp
+# import so4gp as sgp
+from .so4gp import get_num_cores, GRAANK
 
 
 def execute(f_path, min_supp, cores, eq=False):
     try:
-        mine_obj = sgp.GRAANK(data_source=f_path, min_sup=min_supp, eq=eq)
+        mine_obj = GRAANK(data_source=f_path, min_sup=min_supp, eq=eq)
         mine_obj.discover()
         lst_gp = mine_obj.gradual_patterns
 
         if cores > 1:
             num_cores = cores
         else:
-            num_cores = sgp.get_num_cores()
+            num_cores = get_num_cores()
 
         wr_line = "Algorithm: GRAANK \n"
         wr_line += "No. of (dataset) attributes: " + str(mine_obj.col_count) + '\n'

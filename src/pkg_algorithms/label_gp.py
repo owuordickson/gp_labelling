@@ -38,14 +38,16 @@ from itertools import takewhile
 # import multiprocessing as mp
 import numpy as np
 import pandas as pd
-import so4gp as sgp
+# import so4gp as sgp
 from sortedcontainers import SortedDict
+
+from .so4gp import ClusterGP, ExtGP, GI, get_num_cores
 
 
 class LabelGP:
 
     def __init__(self, file, min_supp=0.5, predict=False):  # , n_jobs=1):
-        self.d_gp = sgp.ClusterGP(file, min_supp, no_prob=True)
+        self.d_gp = ClusterGP(file, min_supp, no_prob=True)
         self.ml_model = None
         if not predict:
             self.gp_labels = self._generate_labels()
@@ -271,13 +273,13 @@ class LabelGRITE:
                 # total_ij = (total_len * 0.5) * (total_len - 1)
                 # raw_gps[i][1] = pat_ij / total_ij
 
-            gp = sgp.ExtGP()
+            gp = ExtGP()
             for g in obj[0]:
                 if g > 0:
                     sym = '+'
                 else:
                     sym = '-'
-                gi = sgp.GI((abs(g) - 1), sym)
+                gi = GI((abs(g) - 1), sym)
                 if not gp.contains_attr(gi):
                     gp.add_gradual_item(gi)
                     gp.set_support(obj[1])
@@ -303,7 +305,7 @@ def execute(f_path, mine_obj, cores):
         if cores > 1:
             num_cores = cores
         else:
-            num_cores = sgp.get_num_cores()
+            num_cores = get_num_cores()
 
         wr_line = "Algorithm: LBL-GP \n"
         wr_line += "No. of (dataset) attributes: " + str(d_gp.col_count) + '\n'

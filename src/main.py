@@ -14,7 +14,8 @@ Description:
 
 import sys
 from optparse import OptionParser
-import so4gp
+# import so4gp
+
 
 import config as cfg
 
@@ -60,6 +61,7 @@ if __name__ == "__main__":
     import time
     from memory_profiler import memory_usage
     from pkg_algorithms import aco_graank, graank, label_gp
+    from pkg_algorithms.so4gp import analyze_gps, write_file
 
     if algChoice == 'lblgp':
         # LBL-GP
@@ -78,8 +80,8 @@ if __name__ == "__main__":
         res_text, est_gps = label_gp.execute(filePath, mineObj, numCores)
         end = time.time()
         # mem_usage = memory_usage((label_gp.execute, (filePath, mineObj, numCores)), interval=10)
-        minsup = minSup/2
-        res_compare = so4gp.analyze_gps(filePath, minsup, est_gps, approach='dfs')
+        sup = minSup/2
+        res_compare = analyze_gps(filePath, sup, est_gps, approach='dfs')
 
         wr_text += ("Mining Run-time: " + str(end - start) + " seconds\n")
         # wr_text += ("Memory Usage (MiB): " + str(mem_usage) + " \n")
@@ -87,7 +89,7 @@ if __name__ == "__main__":
         wr_text += "\n\n Analysis of estimated GPs\n"
         wr_text += str(res_compare)
         f_name = str('res_lbl' + str(end).replace('.', '', 1) + '.txt')
-        so4gp.write_file(wr_text, f_name, wr=True)
+        write_file(wr_text, f_name, wr=True)
         print(wr_text)
     elif algChoice == 'acogra':
         # ACO-GRAANK
@@ -101,7 +103,7 @@ if __name__ == "__main__":
         wr_text += ("Memory Usage (MiB): " + str(mem_usage) + " \n")
         wr_text += str(res_text)
         f_name = str('res_aco' + str(end).replace('.', '', 1) + '.txt')
-        so4gp.write_file(wr_text, f_name, wr=False)
+        write_file(wr_text, f_name, wr=False)
         print(wr_text)
     elif algChoice == 'graank':
         # GRAANK
@@ -114,7 +116,7 @@ if __name__ == "__main__":
         wr_text += ("Memory Usage (MiB): " + str(mem_usage) + " \n")
         wr_text += str(res_text)
         f_name = str('res_graank' + str(end).replace('.', '', 1) + '.txt')
-        so4gp.write_file(wr_text, f_name, wr=False)
+        write_file(wr_text, f_name, wr=False)
         print(wr_text)
     else:
         print("Invalid Algorithm Choice!")

@@ -1,4 +1,5 @@
-import so4gp as sgp
+# import so4gp as sgp
+from .so4gp import get_num_cores, AntGRAANK
 
 
 def execute(f_path, min_supp, cores,  evaporation_factor, max_iteration):
@@ -6,9 +7,9 @@ def execute(f_path, min_supp, cores,  evaporation_factor, max_iteration):
         if cores > 1:
             num_cores = cores
         else:
-            num_cores = sgp.get_num_cores()
+            num_cores = get_num_cores()
 
-        mine_obj = sgp.AntGRAANK(f_path, min_supp, max_iter=max_iteration, e_factor=evaporation_factor)
+        mine_obj = AntGRAANK(f_path, min_supp, max_iter=max_iteration, e_factor=evaporation_factor)
         mine_obj.discover()
         lst_gp = mine_obj.gradual_patterns
 

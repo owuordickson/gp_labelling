@@ -1,0 +1,39 @@
+Labels successfully generated
+Labels Run-time: 0.009720802307128906 seconds
+
+
+Mining Run-time: 0.06255292892456055 seconds
+Algorithm: LBL-GP 
+No. of (dataset) attributes: 6
+No. of (dataset) tuples: 5
+Minimum support: 0.2
+Number of cores: 8
+Number of patterns: 6
+
+0. Age
+1. Salary
+2. Cars
+3. Expenses
+4. Invalid1
+5. Invalid2
+
+File: ../data/DATASET.csv
+
+Pattern : Support
+['0+', '2+', '3-'] : 0.4
+['0+', '3-'] : 1.0
+['0+', '1+', '3-'] : 0.6
+['2+', '3+', '0-'] : 0.6
+['2+', '3+', '0-', '1-'] : 0.4
+['1+', '2+', '3+', '0-'] : 0.4
+
+
+ Analysis of estimated GPs
+Gradual Pattern             Estimated Support    True Support  Percentage Error      Standard Deviation
+------------------------  -------------------  --------------  ------------------  --------------------
+['0+', '2+', '3-']                        0.4             0.2  100.0%                             0.141
+['0+', '3-']                              1               1    0.0%                               0
+['0+', '1+', '3-']                        0.6             0.6  0.0%                               0
+['2+', '3+', '0-']                        0.6             0.2  200.0%                             0.283
+['2+', '3+', '0-', '1-']                  0.4             0.1  300.0%                             0.212
+['1+', '2+', '3+', '0-']                  0.4             0.1  300.0%                             0.212
