@@ -2,7 +2,7 @@
 
 # Configurations for Gradual Patterns:
 ALGORITHM = 'lblgp'  # lblgp or acogra or graank
-MIN_SUPPORT = 0.2  # 0.5 (default), 0.2 (b_c), 0.4 (c2k)
+MIN_SUPPORT = 0.5  # 0.5 (default), 0.2 (b_c), 0.4 (c2k)
 CPU_CORES = 1  # Depends on your computer
 
 # DATASET = "../../data/DATASET.csv"

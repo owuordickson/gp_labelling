@@ -64,9 +64,9 @@ class LabelGP:
         weight_vec_neg = np.array([np.count_nonzero(vec < 0) for vec in win_mat])
         weight_vec = weight_vec_pos / np.add(weight_vec_neg, weight_vec_pos)
 
-        print(win_mat)
-        print("weight: " + str(weight_vec))
-        print("\n")
+        # print(win_mat)
+        # print("weight: " + str(weight_vec))
+        # print("\n")
 
         for i in range(win_mat.shape[1]):  # all columns
             temp_label = ''
@@ -115,30 +115,34 @@ class LabelGP:
 
 class LabelGRITE:
 
-    def __init__(self, gp_labels, min_supp=0.5, max_depth=20):
+    def __init__(self, lbl_obj, min_supp=0.5, max_depth=20):
         self.min_supp = min_supp  # provided by user
         self.max_depth = int(max_depth)
-        self.gp_labels = gp_labels
-        self.row_count = gp_labels.shape[0]
+        self.label_obj = lbl_obj
+        # self.gp_labels = lbl_obj.gp_labels
+        # self.row_count = lbl_obj.gp_labels.shape[0]
         self.gi_to_tids = None
 
     def fit_label_bitmap(self):
-        gp_labels = self.gp_labels
+        gp_labels = self.label_obj.gp_labels  # self.gp_labels
         # 1. Construct set of all the GIs
-        set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,')[:-1].split(',')) for obj in gp_labels]
+        set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,').split(',')) for obj in gp_labels]
         u = set.union(*set_gps)
+        u.discard('')
         # arr = np.array(list(u), dtype=int)
 
-        print(set_gps)
-        print(u)
+        # print(set_gps)
+        # print(u)
         # print(arr)
-        print("\n")
+        # print("\n")
         self.fit_tids(u)
 
     def fit_tids(self, all_gi):
+        gp_labels = self.label_obj.gp_labels
         # self.n_transactions = 0  # reset for safety
 
         # 1. Construct set of all the GIs
+        # set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,')[:-1].split(',')) for obj in gp_labels]
         # set_gps = [set(str(obj).replace('+', '+,').replace('-', '-,').split(',')) for obj in self.gp_labels]
         # print(set_gps)
         # u = set.union(*set_gps)
@@ -148,7 +152,7 @@ class LabelGRITE:
         arr_ids = [[int(x[0])
                     if x[1] == '+'
                     else (-1 * int(x[0])),
-                    set(self.gp_labels.index[self.gp_labels.str.contains(pat=str(x[0]+'['+x[1]+']'), regex=True)]
+                    set(gp_labels.index[gp_labels.str.contains(pat=str(x[0]+'['+x[1]+']'), regex=True)]
                         .tolist())] for x in all_gi]
 
         self.gi_to_tids = SortedDict(np.array(arr_ids, dtype=object))
@@ -195,7 +199,7 @@ class LabelGRITE:
         if depth >= self.max_depth:
             return
         p, tids = p_tids
-        total_len = self.row_count
+        total_len = self.label_obj.d_gp.row_count  # self.row_count
         # project and reduce DB w.r.t P
         cp = (
             item
@@ -234,7 +238,7 @@ class LabelGRITE:
     def _extract_gps(self, df):
         lst_gp = []
         unique_ids = []
-        total_len = self.row_count
+        total_len = self.label_obj.d_gp.row_count  # self.row_count
 
         # Remove useless GP items
         df = df[df.itemset.notnull()]
@@ -252,6 +256,7 @@ class LabelGRITE:
                 for temp in res_set:
                     raw_gps[i][2] = set(obj[2]).union(set(temp))
                 pat_len = len(raw_gps[i][2])+1  # remember first node has 2 tids
+                # pat_len = pat_len+1 if pat_len > 1 else pat_len
                 raw_gps[i][1] = pat_len / total_len  # dfs approach
                 # bfs approach
                 # pat_ij = (pat_len*0.5) * (pat_len - 1)
@@ -259,6 +264,7 @@ class LabelGRITE:
                 # raw_gps[i][1] = pat_ij / total_ij
             else:
                 pat_len = int(obj[1])+1  # remember first node has 2 tids
+                # pat_len = pat_len+1 if pat_len > 1 else pat_len
                 raw_gps[i][1] = pat_len / total_len  # dfs approach
                 # bfs approach
                 # pat_ij = (pat_len * 0.5) * (pat_len - 1)
@@ -292,6 +298,7 @@ class LabelGRITE:
 def execute(f_path, mine_obj, cores):
     try:
         res_df, estimated_gps = mine_obj.discover(return_depth=True)
+        d_gp = mine_obj.label_obj.d_gp
 
         if cores > 1:
             num_cores = cores
@@ -299,13 +306,13 @@ def execute(f_path, mine_obj, cores):
             num_cores = sgp.get_num_cores()
 
         wr_line = "Algorithm: LBL-GP \n"
-        wr_line += "No. of (dataset) attributes: " + str(mine_obj.d_gp.col_count) + '\n'
-        wr_line += "No. of (dataset) tuples: " + str(mine_obj.d_gp.row_count) + '\n'
-        wr_line += "Minimum support: " + str(mine_obj.d_gp.thd_supp) + '\n'
+        wr_line += "No. of (dataset) attributes: " + str(d_gp.col_count) + '\n'
+        wr_line += "No. of (dataset) tuples: " + str(d_gp.row_count) + '\n'
+        wr_line += "Minimum support: " + str(d_gp.thd_supp) + '\n'
         wr_line += "Number of cores: " + str(num_cores) + '\n'
         wr_line += "Number of patterns: " + str(len(estimated_gps)) + '\n\n'
 
-        for txt in mine_obj.d_gp.titles:
+        for txt in d_gp.titles:
             wr_line += (str(txt[0]) + '. ' + str(txt[1].decode()) + '\n')
 
         wr_line += str("\nFile: " + f_path + '\n')
@@ -321,20 +328,20 @@ def execute(f_path, mine_obj, cores):
         return wr_line
 
 
-filePath = '../../data/DATASET.csv'  # 0.25
+# filePath = '../../data/DATASET.csv'  # 0.25
 # filePath = '../../data/breast_cancer.csv'  # 0.2
 # filePath = '../../data/c2k_02k.csv'  # 0.5
-minSup = 0.2
-lgp = LabelGP(filePath, min_supp=minSup)
-mineObj = LabelGRITE(lgp.gp_labels, min_supp=minSup)
+# # filePath = '../../data/c2k.csv'  # 0.5
+# minSup = 0.5
+# lgp = LabelGP(filePath, min_supp=minSup)
+# mineObj = LabelGRITE(lgp, min_supp=minSup)
 
 # lgp.fit()
-res_df1, estimated_gps1 = mineObj.discover(return_depth=True)
+# res_df1, estimated_gps1 = mineObj.discover(return_depth=True)
 
-print(lgp.d_gp.data)
-print("\n")
-print(res_df1)
+# print(lgp.d_gp.data)
+# print("\n")
+# print(res_df1)
 
-print(sgp.analyze_gps(filePath, minSup, estimated_gps1, approach='dfs'))
-# print(sgp.analyze_gps('../../data/c2k_02k.csv', 0.5, est_gps, approach='dfs'))
-# print(sgp.analyze_gps('../data/breast_cancer.csv', 0.2, est_gps, approach='dfs'))
+# minSup = -1
+# print(sgp.analyze_gps(filePath, minSup, estimated_gps1, approach='bfs'))
