@@ -72,6 +72,7 @@ if __name__ == "__main__":
         wr_text = "Labels successfully generated\n"
         wr_text += ("Labels Run-time: " + str(end - start) + " seconds\n")
         wr_text += "\n\n"
+        print(wr_text)
 
         # --------------------------------------------------------
 
